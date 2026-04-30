@@ -2,6 +2,17 @@
 
 Ce projet est un système de gestion de présence (pointage) basé sur la reconnaissance faciale, utilisant Python, OpenCV et PyQt5 pour une interface moderne et intuitive.
 
+## ⚡ Démarrage Rapide
+
+1. **Lancer la base de données** :
+   ```powershell
+   docker-compose up -d
+   ```
+2. **Lancer l'application** :
+   ```powershell
+   python HomeGui.py
+   ```
+
 ## 🚀 Fonctionnalités
 
 - **Interface Moderne** : Design sombre (Dark Mode) avec des animations fluides et une navigation intuitive.
@@ -13,21 +24,29 @@ Ce projet est un système de gestion de présence (pointage) basé sur la reconn
 ## 🛠️ Installation
 
 ### 1. Prérequis
-Assurez-vous d'avoir Python 3.x installé, ainsi qu'un serveur MySQL (XAMPP recommandé).
+- Python 3.x
+- Docker & Docker Compose
 
-### 2. Dépendances
-Installez les bibliothèques nécessaires :
-```bash
-pip install opencv-python face_recognition PyQt5 mysql-connector-python pandas matplotlib openpyxl
+### 2. Installation de l'environnement
+Il est recommandé d'utiliser un environnement virtuel :
+```powershell
+# Création de l'environnement
+python -m venv venv
+
+# Activation (Windows)
+.\venv\Scripts\activate
+
+# Installation des dépendances
+pip install -r requirements.txt
 ```
 
-### 3. Base de données
-1. Créez une base de données nommée `employee_db` dans votre serveur MySQL.
-2. Importez le fichier SQL fourni dans le dossier `BD/` (si disponible) ou créez les tables `employee` et `attendance`.
+### 3. Base de données (Docker)
+Le projet utilise Docker pour simplifier la gestion de MySQL. Le fichier `BD/employee_db.sql` est utilisé pour initialiser automatiquement la base.
 
 ## 📖 Utilisation
 
-1. **Lancement** : Exécutez `python HomeGui.py` pour ouvrir le menu principal.
+1. **Préparation** : Assurez-vous que le conteneur MySQL est actif avec `docker-compose up -d`.
+2. **Lancement** : Exécutez `python HomeGui.py` pour ouvrir le menu principal.
 2. **Ajout d'un Employé** : Allez dans "About User" -> "Add New". Suivez les instructions pour capturer le visage.
 3. **Entraînement** : Le système s'entraîne automatiquement après l'ajout, mais vous pouvez aussi lancer `training.py`.
 4. **Pointage** : 

@@ -47,4 +47,4 @@ pip install opencv-python face_recognition PyQt5 mysql-connector-python pandas m
 - `data/` : Dossier contenant les captures de visages (organisées par ID).
 
 ---
-© 2026 Attendance Management System - Développé avec ❤️
+© 2026 Attendance Management System - Développé avec ❤️  BY MOUSSAOUI TAREK

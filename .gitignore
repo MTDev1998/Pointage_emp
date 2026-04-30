@@ -1,0 +1,26 @@
+# Données d'entraînement et images
+data/
+images/
+*.pkl
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+pip-log.txt
+
+# Spécifiques à l'IDE
+.vscode/
+.idea/
+
+# Base de données locale
+attendance.db
+
+# Fichiers de build
+build/
+dist/
+*.spec

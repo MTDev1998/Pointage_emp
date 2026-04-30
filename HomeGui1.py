@@ -1,14 +1,13 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QTableWidget, QTableWidgetItem, QDateEdit, QLabel, QLineEdit, QPushButton, QFileDialog, QHBoxLayout, QHeaderView, QDialog
+from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QTableWidget, QTableWidgetItem, QDateEdit, QLabel, QLineEdit, QPushButton, QFileDialog, QHBoxLayout, QHeaderView, QDialog, QMessageBox
 from PyQt5.QtCore import Qt
 from datetime import datetime
-import mysql.connector
-from mysql.connector import Error
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import Statistic
 import styles
+from database import db
 
 class AttendanceViewer(QMainWindow):
     def __init__(self):
@@ -89,38 +88,23 @@ class AttendanceViewer(QMainWindow):
 
     def fetch_attendance_data(self):
         try:
-            connection = mysql.connector.connect(
-                host="localhost",
-                user="root",
-                password="",
-                database="employee_db"
-            )
+            selected_date = self.date_filter.date().toPyDate()
+            user_f = self.user_filter.text()
+            role_f = self.role_filter.text()
 
-            if connection.is_connected():
-                cursor = connection.cursor()
+            query = ("SELECT e.employee_id, e.employee_name, e.employee_role, "
+                     "MIN(a.timestamp) AS min_time, MAX(a.timestamp) AS max_time "
+                     "FROM employee e LEFT JOIN attendance a ON e.id = a.employee_id "
+                     "WHERE DATE(a.timestamp) = %s "
+                     "AND (e.employee_name LIKE %s OR %s = '') "
+                     "AND (e.employee_role LIKE %s OR %s = '') "
+                     "GROUP BY e.employee_id, e.employee_name, e.employee_role")
 
-                selected_date = self.date_filter.date().toPyDate()
-                user_f = self.user_filter.text()
-                role_f = self.role_filter.text()
+            attendance_data = db.fetch_all(query, (selected_date, f"%{user_f}%", user_f, f"%{role_f}%", role_f))
+            self.populate_table(attendance_data)
 
-                query = ("SELECT e.employee_id, e.employee_name, e.employee_role, "
-                         "MIN(a.timestamp) AS min_time, MAX(a.timestamp) AS max_time "
-                         "FROM employee e LEFT JOIN attendance a ON e.id = a.employee_id "
-                         "WHERE DATE(a.timestamp) = %s "
-                         "AND (e.employee_name LIKE %s OR %s = '') "
-                         "AND (e.employee_role LIKE %s OR %s = '') "
-                         "GROUP BY e.employee_id, e.employee_name, e.employee_role")
-
-                cursor.execute(query, (selected_date, f"%{user_f}%", user_f, f"%{role_f}%", role_f))
-                attendance_data = cursor.fetchall()
-                self.populate_table(attendance_data)
-
-        except Error as e:
+        except Exception as e:
             print("Error:", e)
-        finally:
-            if connection.is_connected():
-                cursor.close()
-                connection.close()
 
     def populate_table(self, data):
         self.table.setRowCount(0)
@@ -134,43 +118,29 @@ class AttendanceViewer(QMainWindow):
 
     def export_to_excel(self):
         try:
-            connection = mysql.connector.connect(
-                host="localhost",
-                user="root",
-                password="",
-                database="employee_db"
-            )
+            selected_date = self.date_filter.date().toPyDate()
+            user_f = self.user_filter.text()
+            role_f = self.role_filter.text()
 
-            if connection.is_connected():
-                cursor = connection.cursor()
-                selected_date = self.date_filter.date().toPyDate()
-                user_f = self.user_filter.text()
-                role_f = self.role_filter.text()
+            query = ("SELECT e.employee_id, e.employee_name, e.employee_role, "
+                     "MIN(a.timestamp) AS min_time, MAX(a.timestamp) AS max_time "
+                     "FROM employee e LEFT JOIN attendance a ON e.id = a.employee_id "
+                     "WHERE DATE(a.timestamp) = %s "
+                     "AND (e.employee_name LIKE %s OR %s = '') "
+                     "AND (e.employee_role LIKE %s OR %s = '') "
+                     "GROUP BY e.employee_id, e.employee_name, e.employee_role")
 
-                query = ("SELECT e.employee_id, e.employee_name, e.employee_role, "
-                         "MIN(a.timestamp) AS min_time, MAX(a.timestamp) AS max_time "
-                         "FROM employee e LEFT JOIN attendance a ON e.id = a.employee_id "
-                         "WHERE DATE(a.timestamp) = %s "
-                         "AND (e.employee_name LIKE %s OR %s = '') "
-                         "AND (e.employee_role LIKE %s OR %s = '') "
-                         "GROUP BY e.employee_id, e.employee_name, e.employee_role")
+            attendance_data = db.fetch_all(query, (selected_date, f"%{user_f}%", user_f, f"%{role_f}%", role_f))
 
-                cursor.execute(query, (selected_date, f"%{user_f}%", user_f, f"%{role_f}%", role_f))
-                attendance_data = cursor.fetchall()
+            df = pd.DataFrame(attendance_data, columns=["ID", "Name", "Role", "Entry Time", "Exit Time"])
+            file_path, _ = QFileDialog.getSaveFileName(self, 'Save Report', f'attendance_{selected_date}.xlsx', 'Excel Files (*.xlsx)')
 
-                df = pd.DataFrame(attendance_data, columns=["ID", "Name", "Role", "Entry Time", "Exit Time"])
-                file_path, _ = QFileDialog.getSaveFileName(self, 'Save Report', f'attendance_{selected_date}.xlsx', 'Excel Files (*.xlsx)')
+            if file_path:
+                df.to_excel(file_path, index=False)
+                QMessageBox.information(self, "Export Success", f"Report saved to {file_path}")
 
-                if file_path:
-                    df.to_excel(file_path, index=False)
-                    QMessageBox.information(self, "Export Success", f"Report saved to {file_path}")
-
-        except Error as e:
+        except Exception as e:
             QMessageBox.critical(self, "Export Error", f"Error: {e}")
-        finally:
-            if connection.is_connected():
-                cursor.close()
-                connection.close()
 
     def show_average_working_hours_graph(self):
         date_dialog = QDialog(self)

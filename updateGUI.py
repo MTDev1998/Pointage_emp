@@ -2,10 +2,9 @@ import sys
 import subprocess
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QTableWidget, QTableWidgetItem, QPushButton, QDialog, QLabel, QLineEdit, QHBoxLayout, QCheckBox, QMessageBox, QHeaderView
 from PyQt5.QtCore import QTimer, Qt
-import mysql.connector
-from mysql.connector import Error
 import delete
 import styles
+from database import db
 
 class EmployeeModification(QDialog):
     def __init__(self, employee_data, update_function):
@@ -62,38 +61,23 @@ class EmployeeModification(QDialog):
 
     def update_employee(self):
         try:
-            connection = mysql.connector.connect(
-                host="localhost",
-                user="root",
-                password="",
-                database="employee_db"
-            )
+            updated_name = self.employee_name_edit.text()
+            updated_role = self.employee_role_edit.text()
 
-            if connection.is_connected():
-                cursor = connection.cursor()
+            update_query = ("UPDATE employee "
+                            "SET employee_name = %s, employee_role = %s "
+                            "WHERE employee_id = %s")
 
-                updated_name = self.employee_name_edit.text()
-                updated_role = self.employee_role_edit.text()
+            db.execute(update_query, (updated_name, updated_role, self.employee_id))
 
-                update_query = ("UPDATE employee "
-                                "SET employee_name = %s, employee_role = %s "
-                                "WHERE employee_id = %s")
+            self.success_checkbox.setChecked(True)
+            QMessageBox.information(self, "Success", "Employee updated successfully")
 
-                cursor.execute(update_query, (updated_name, updated_role, self.employee_id))
-                connection.commit()
+            QTimer.singleShot(1500, self.accept)
+            self.update_function()
 
-                self.success_checkbox.setChecked(True)
-                QMessageBox.information(self, "Success", "Employee updated successfully")
-
-                QTimer.singleShot(1500, self.accept)
-                self.update_function()
-
-        except Error as e:
+        except Exception as e:
             QMessageBox.critical(self, "Database Error", f"Error: {e}")
-        finally:
-            if connection.is_connected():
-                cursor.close()
-                connection.close()
 
 class EmployeeManagement(QMainWindow):
     def __init__(self):
@@ -142,25 +126,10 @@ class EmployeeManagement(QMainWindow):
 
     def fetch_employee_data(self):
         try:
-            connection = mysql.connector.connect(
-                host="localhost",
-                user="root",
-                password="",
-                database="employee_db"
-            )
-
-            if connection.is_connected():
-                cursor = connection.cursor()
-                cursor.execute("SELECT employee_id, employee_name, employee_role FROM employee")
-                employee_data = cursor.fetchall()
-                self.populate_table(employee_data)
-
-        except Error as e:
+            employee_data = db.fetch_all("SELECT employee_id, employee_name, employee_role FROM employee")
+            self.populate_table(employee_data)
+        except Exception as e:
             print("Error:", e)
-        finally:
-            if connection.is_connected():
-                cursor.close()
-                connection.close()
 
     def populate_table(self, data):
         self.table.setRowCount(0)
@@ -203,7 +172,6 @@ class EmployeeManagement(QMainWindow):
     def add_employee(self):
         try:
             subprocess.Popen(["python", "AddEmployeeGUI.py"])
-            # We don't close this window, just open the other one
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Could not open Add Employee window: {e}")
 

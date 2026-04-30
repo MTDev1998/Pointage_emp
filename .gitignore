@@ -1,6 +1,7 @@
 # Données d'entraînement et images
 data/
 images/
+db_data/
 *.pkl
 
 # Python

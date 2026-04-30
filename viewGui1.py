@@ -2,10 +2,9 @@ import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QTableWidget, QTableWidgetItem, QDateEdit, QLabel, QLineEdit, QPushButton, QFileDialog, QHBoxLayout, QHeaderView
 from PyQt5.QtCore import Qt
 from datetime import datetime
-import mysql.connector
-from mysql.connector import Error
 import pandas as pd
 import styles
+from database import db
 
 class AttendanceViewer(QMainWindow):
     def __init__(self):
@@ -62,35 +61,40 @@ class AttendanceViewer(QMainWindow):
 
     def fetch_attendance_data(self):
         try:
-            connection = mysql.connector.connect(host="localhost", user="root", password="", database="employee_db")
-            if connection.is_connected():
-                cursor = connection.cursor()
+            date_val = self.date_filter.date().toPyDate()
+            name_val = self.user_filter.text()
+
+            query = ("SELECT e.employee_id, e.employee_name, e.employee_role, "
+                     "MIN(a.timestamp), MAX(a.timestamp) "
+                     "FROM employee e LEFT JOIN attendance a ON e.id = a.employee_id "
+                     "WHERE DATE(a.timestamp) = %s AND (e.employee_name LIKE %s OR %s = '') "
+                     "GROUP BY e.employee_id, e.employee_name")
+            
+            data = db.fetch_all(query, (date_val, f"%{name_val}%", name_val))
+            self.table.setRowCount(0)
+            for row_idx, row in enumerate(data):
+                self.table.insertRow(row_idx)
+                for col_idx, val in enumerate(row):
+                    self.table.setItem(row_idx, col_idx, QTableWidgetItem(str(val) if val else "N/A"))
+        except Exception as e:
+            print(e)
+
+    def export_to_excel(self):
+        file_path, _ = QFileDialog.getSaveFileName(self, 'Save Excel', 'attendance.xlsx', 'Excel Files (*.xlsx)')
+        if file_path:
+            try:
                 date_val = self.date_filter.date().toPyDate()
                 name_val = self.user_filter.text()
-
                 query = ("SELECT e.employee_id, e.employee_name, e.employee_role, "
                          "MIN(a.timestamp), MAX(a.timestamp) "
                          "FROM employee e LEFT JOIN attendance a ON e.id = a.employee_id "
                          "WHERE DATE(a.timestamp) = %s AND (e.employee_name LIKE %s OR %s = '') "
                          "GROUP BY e.employee_id, e.employee_name")
-                
-                cursor.execute(query, (date_val, f"%{name_val}%", name_val))
-                data = cursor.fetchall()
-                self.table.setRowCount(0)
-                for row_idx, row in enumerate(data):
-                    self.table.insertRow(row_idx)
-                    for col_idx, val in enumerate(row):
-                        self.table.setItem(row_idx, col_idx, QTableWidgetItem(str(val) if val else "N/A"))
-        except Error as e: print(e)
-        finally:
-            if connection.is_connected(): connection.close()
-
-    def export_to_excel(self):
-        # Implementation is same as HomeGui1.py
-        file_path, _ = QFileDialog.getSaveFileName(self, 'Save Excel', 'attendance.xlsx', 'Excel Files (*.xlsx)')
-        if file_path:
-            # Logic to fetch and save...
-            pass
+                data = db.fetch_all(query, (date_val, f"%{name_val}%", name_val))
+                df = pd.DataFrame(data, columns=["ID", "Name", "Role", "Entry", "Exit"])
+                df.to_excel(file_path, index=False)
+            except Exception as e:
+                print(e)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

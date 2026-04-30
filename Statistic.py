@@ -2,12 +2,11 @@ import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QTableWidget, \
     QTableWidgetItem, QPushButton, QDialog, QLabel, QLineEdit, QHBoxLayout, QCheckBox, QDateEdit, QHeaderView, QMessageBox
 from PyQt5.QtCore import QTimer, Qt
-import mysql.connector
-from mysql.connector import Error
 from datetime import datetime
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import styles
+from database import db
 
 class EmployeeModification(QDialog):
     def __init__(self, employee_data):
@@ -47,18 +46,12 @@ class EmployeeModification(QDialog):
 
     def update_employee(self):
         try:
-            connection = mysql.connector.connect(host="localhost", user="root", password="", database="employee_db")
-            if connection.is_connected():
-                cursor = connection.cursor()
-                cursor.execute("UPDATE employee SET employee_name = %s, employee_role = %s WHERE employee_id = %s",
-                               (self.name_edit.text(), self.role_edit.text(), self.employee_id))
-                connection.commit()
-                self.success_checkbox.setChecked(True)
-                QTimer.singleShot(1000, self.accept)
-        except Error as e:
+            db.execute("UPDATE employee SET employee_name = %s, employee_role = %s WHERE employee_id = %s",
+                       (self.name_edit.text(), self.role_edit.text(), self.employee_id))
+            self.success_checkbox.setChecked(True)
+            QTimer.singleShot(1000, self.accept)
+        except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
-        finally:
-            if connection.is_connected(): connection.close()
 
 class EmployeeManagement(QMainWindow):
     def __init__(self):
@@ -96,22 +89,16 @@ class EmployeeManagement(QMainWindow):
 
     def fetch_employee_data(self):
         try:
-            connection = mysql.connector.connect(host="localhost", user="root", password="", database="employee_db")
-            if connection.is_connected():
-                cursor = connection.cursor()
-                cursor.execute("SELECT employee_id, employee_name, employee_role FROM employee")
-                data = cursor.fetchall()
-                self.table.setRowCount(0)
-                for row_idx, row_data in enumerate(data):
-                    self.table.insertRow(row_idx)
-                    for col_idx, val in enumerate(row_data):
-                        self.table.setItem(row_idx, col_idx, QTableWidgetItem(str(val)))
-        except Error as e: print(e)
-        finally:
-            if connection.is_connected(): connection.close()
+            data = db.fetch_all("SELECT employee_id, employee_name, employee_role FROM employee")
+            self.table.setRowCount(0)
+            for row_idx, row_data in enumerate(data):
+                self.table.insertRow(row_idx)
+                for col_idx, val in enumerate(row_data):
+                    self.table.setItem(row_idx, col_idx, QTableWidgetItem(str(val)))
+        except Exception as e:
+            print(e)
 
     def show_average_working_hours_graph(self):
-        # Implementation similar to HomeGui1.py
         date_dialog = QDialog(self)
         date_dialog.setWindowTitle("Select Range")
         l = QVBoxLayout(date_dialog)
@@ -147,33 +134,28 @@ class EmployeeManagement(QMainWindow):
 
 def calculate_average_working_hours(begin_date, end_date):
     try:
-        connection = mysql.connector.connect(host="localhost", user="root", password="", database="employee_db")
-        if connection.is_connected():
-            cursor = connection.cursor()
-            query = ("SELECT employee_id, MIN(timestamp), MAX(timestamp) FROM attendance "
-                     "WHERE DATE(timestamp) BETWEEN %s AND %s GROUP BY employee_id, DATE(timestamp)")
-            cursor.execute(query, (begin_date, end_date))
-            results = cursor.fetchall()
-            
-            # Group by employee to get average
-            emp_data = {}
-            for eid, tmin, tmax in results:
-                hours = (tmax - tmin).total_seconds() / 3600
-                if eid not in emp_data: emp_data[eid] = []
-                emp_data[eid].append(hours)
-            
-            avg_hours = {eid: sum(h)/len(h) for eid, h in emp_data.items()}
-            
-            names = {}
-            for eid in avg_hours.keys():
-                cursor.execute("SELECT employee_name FROM employee WHERE id = %s", (eid,))
-                row = cursor.fetchone()
-                names[eid] = row[0] if row else str(eid)
-            
-            return avg_hours, names
-    except Exception as e: print(e); return {}, {}
-    finally:
-        if connection.is_connected(): connection.close()
+        query = ("SELECT employee_id, MIN(timestamp), MAX(timestamp) FROM attendance "
+                 "WHERE DATE(timestamp) BETWEEN %s AND %s GROUP BY employee_id, DATE(timestamp)")
+        results = db.fetch_all(query, (begin_date, end_date))
+        
+        # Group by employee to get average
+        emp_data = {}
+        for eid, tmin, tmax in results:
+            hours = (tmax - tmin).total_seconds() / 3600
+            if eid not in emp_data: emp_data[eid] = []
+            emp_data[eid].append(hours)
+        
+        avg_hours = {eid: sum(h)/len(h) for eid, h in emp_data.items()}
+        
+        names = {}
+        for eid in avg_hours.keys():
+            row = db.fetch_one("SELECT employee_name FROM employee WHERE id = %s", (eid,))
+            names[eid] = row[0] if row else str(eid)
+        
+        return avg_hours, names
+    except Exception as e:
+        print(e)
+        return {}, {}
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

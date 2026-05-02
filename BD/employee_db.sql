@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 8.0.43, for Linux (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.46, for Linux (x86_64)
 --
 -- Host: localhost    Database: employee_db
 -- ------------------------------------------------------
--- Server version	8.0.43
+-- Server version	8.0.46
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -29,7 +29,7 @@ CREATE TABLE `attendance` (
   PRIMARY KEY (`id`),
   KEY `employee_id` (`employee_id`),
   CONSTRAINT `attendance_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=301 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=304 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -38,7 +38,7 @@ CREATE TABLE `attendance` (
 
 LOCK TABLES `attendance` WRITE;
 /*!40000 ALTER TABLE `attendance` DISABLE KEYS */;
-INSERT INTO `attendance` VALUES (293,21,'2026-04-30 12:21:32'),(294,21,'2026-04-30 12:21:37'),(295,21,'2026-04-30 12:23:46'),(296,21,'2026-04-30 12:23:52'),(297,21,'2026-04-30 14:36:30'),(298,21,'2026-04-30 17:20:17'),(299,21,'2026-04-30 17:47:24'),(300,21,'2026-04-30 17:52:02');
+INSERT INTO `attendance` VALUES (293,21,'2026-04-30 12:21:32'),(294,21,'2026-04-30 12:21:37'),(295,21,'2026-04-30 12:23:46'),(296,21,'2026-04-30 12:23:52'),(297,21,'2026-04-30 14:36:30'),(298,21,'2026-04-30 17:20:17'),(299,21,'2026-04-30 17:47:24'),(300,21,'2026-04-30 17:52:02'),(301,21,'2026-05-01 00:05:44'),(302,21,'2026-05-01 09:57:45'),(303,21,'2026-05-02 14:54:24');
 /*!40000 ALTER TABLE `attendance` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -64,7 +64,7 @@ CREATE TABLE `employee` (
 
 LOCK TABLES `employee` WRITE;
 /*!40000 ALTER TABLE `employee` DISABLE KEYS */;
-INSERT INTO `employee` VALUES (19,'3','Moussaoui Nassim','Responsable It & Data Analyste'),(21,'4','Tarek MOUSSAOUI mt','Responsable It & Data Analyste');
+INSERT INTO `employee` VALUES (19,'3','Moussaoui Nassim','Responsable It & Data Analyste'),(21,'4','Tarek MOUSSAOUI','Responsable It & Data Analyste');
 /*!40000 ALTER TABLE `employee` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -103,4 +103,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-04-30 15:52:03
+-- Dump completed on 2026-05-02 12:54:24
